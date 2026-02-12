@@ -7,6 +7,7 @@
 # See LICENSE file in the project root for full license information.
 
 from datetime import datetime, date
+from pathlib import Path
 
 DAYS = [
     "Monday",
@@ -52,7 +53,9 @@ def read_data(filename: str) -> list:
     """
     cons_prod = []
 
-    with open(filename, "r", encoding="utf-8") as f:
+    file_path = Path(__file__).with_name(filename)  # <-- löytää CSV:n aina TaskE-kansiosta
+
+    with open(file_path, "r", encoding="utf-8") as f:
         next(f)
         for line in f:
             line = line.strip()
@@ -73,7 +76,6 @@ def day_information(day: date, database: list) -> str:
     Returns:
     Printable string
     """
-
     cons_prod = ["day", "date", 0, 0, 0, 0, 0, 0]
 
     for per_hour in database:
@@ -118,15 +120,14 @@ def write_data(content: str):
     Parameters:
     content (str): Content
     """
-    with open("summary.txt", "w", encoding="utf-8") as f:
-        f.write(content)
+    out_path = Path(__file__).with_name("summary.txt")  # <-- kirjoittaa summary.txt samaan kansioon
+    out_path.write_text(content, encoding="utf-8")
 
 
 def main() -> None:
     """
     Main function: reads data, computes daily totals, and prints the report.
     """
-
     file_content = ""
 
     # Week 41
