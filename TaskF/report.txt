@@ -1,0 +1,5 @@
+Daily summary (01,01,2025 - 30,05,2025)
+---------------------------------------
+- Total consumption: 4,49 kWh
+- Total production: 0,98 kWh
+- Average temperature: 2,52 °C
