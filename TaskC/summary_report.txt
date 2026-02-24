@@ -1,0 +1,7 @@
+Task C - Reservation report
+-----------------------------------------------------
+Total lines in file: 5
+Valid reservations: 0
+Paid: 0
+Unpaid: 0
+Invalid rows: 5
