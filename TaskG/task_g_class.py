@@ -1,5 +1,12 @@
-# Copyright (c) 2026 Nikos Eliassi
-# License: MIT
+# Copyright (c) 2026 Nikos Eliassi 
+#
+# This code is licensed under the MIT License.
+# You are free to use, modify, and distribute this code,
+# provided that the original copyright notice is retained.
+#
+# See LICENSE file in the project root for full license information.
+
+# Modified by nnn according to given task
 
 from __future__ import annotations
 
