@@ -1,125 +1,124 @@
-# Copyright (c) 2026 Nikos Eliassi 
-#
-# This code is licensed under the MIT License.
-# You are free to use, modify, and distribute this code,
-# provided that the original copyright notice is retained.
-#
-# See LICENSE file in the project root for full license information.
-
-# Modified by nnn according to given task
+# Copyright (c) 2026 Nikos Eliassi
+# Modified according to task requirements
 
 from __future__ import annotations
-
 from dataclasses import dataclass
 from datetime import datetime, date, time
-from typing import Iterable
+import os
 
 
-TRUE_VALUES = {"true", "1", "yes", "y", "kylla", "kyllä"}
+def parse_bool(value: str) -> bool:
+    return value.strip() == "True"
 
 
-def to_bool(text: str) -> bool:
-    return text.strip().lower() in TRUE_VALUES
-
-
-def parse_date(text: str) -> date:
-    return datetime.strptime(text.strip(), "%Y-%m-%d").date()
-
-
-def parse_time(text: str) -> time:
-    return datetime.strptime(text.strip(), "%H:%M").time()
-
-
-def parse_dt(text: str) -> datetime:
-    return datetime.strptime(text.strip(), "%Y-%m-%d %H:%M:%S")
-
-
-@dataclass(frozen=True)
+@dataclass
 class Reservation:
-    rid: int
-    customer_name: str
+    reservation_id: int
+    name: str
     email: str
     phone: str
-    day: date
-    start: time
-    hours: int
-    hourly_price: float
+    reservation_date: date
+    reservation_time: time
+    duration: int
+    price: float
     confirmed: bool
-    resource: str
+    reserved_resource: str
     created_at: datetime
 
-    def total(self) -> float:
-        return self.hours * self.hourly_price
-
-    def is_long(self, min_hours: int = 3) -> bool:
-        return self.hours >= min_hours
+    def total_price(self) -> float:
+        return self.duration * self.price
 
 
-def reservation_from_parts(parts: list[str]) -> Reservation:
-    # Expected order in file:
-    # id|name|email|phone|YYYY-MM-DD|HH:MM|duration|price|confirmed|resource|YYYY-MM-DD HH:MM:SS
+def convert_reservation(parts: list[str]) -> Reservation:
     return Reservation(
-        rid=int(parts[0]),
-        customer_name=parts[1].strip(),
-        email=parts[2].strip(),
-        phone=parts[3].strip(),
-        day=parse_date(parts[4]),
-        start=parse_time(parts[5]),
-        hours=int(parts[6]),
-        hourly_price=float(parts[7]),
-        confirmed=to_bool(parts[8]),
-        resource=parts[9].strip(),
-        created_at=parse_dt(parts[10]),
+        reservation_id=int(parts[0]),
+        name=parts[1],
+        email=parts[2],
+        phone=parts[3],
+        reservation_date=datetime.strptime(parts[4], "%Y-%m-%d").date(),
+        reservation_time=datetime.strptime(parts[5], "%H:%M").time(),
+        duration=int(parts[6]),
+        price=float(parts[7]),
+        confirmed=parse_bool(parts[8]),
+        reserved_resource=parts[9],
+        created_at=datetime.strptime(parts[10].strip(), "%Y-%m-%d %H:%M:%S"),
     )
 
 
-def read_reservations(path: str, sep: str = "|") -> list[Reservation]:
-    results: list[Reservation] = []
-    with open(path, "r", encoding="utf-8") as file:
-        for raw in file:
-            raw = raw.strip()
-            if not raw:
-                continue
-            parts = raw.split(sep)
-            results.append(reservation_from_parts(parts))
-    return results
+def fetch_reservations(filename: str) -> list[Reservation]:
+    reservations: list[Reservation] = []
+
+    # Automatically read file from same folder as this script
+    current_dir = os.path.dirname(__file__)
+    filepath = os.path.join(current_dir, filename)
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        for line in f:
+            if len(line) > 1:
+                parts = line.strip().split("|")
+                reservations.append(convert_reservation(parts))
+
+    return reservations
 
 
-def confirmed_only(items: Iterable[Reservation]) -> list[Reservation]:
-    return [r for r in items if r.confirmed]
+def confirmed_reservations(reservations: list[Reservation]) -> None:
+    for r in reservations:
+        if r.confirmed:
+            print(
+                f"- {r.name}, {r.reserved_resource}, "
+                f"{r.reservation_date.strftime('%d.%m.%Y')} at "
+                f"{r.reservation_time.strftime('%H.%M')}"
+            )
 
 
-def long_only(items: Iterable[Reservation], min_hours: int = 3) -> list[Reservation]:
-    return [r for r in items if r.is_long(min_hours)]
+def long_reservations(reservations: list[Reservation]) -> None:
+    for r in reservations:
+        if r.duration >= 3:
+            print(
+                f"- {r.name}, {r.reservation_date.strftime('%d.%m.%Y')} at "
+                f"{r.reservation_time.strftime('%H.%M')}, "
+                f"duration {r.duration} h, {r.reserved_resource}"
+            )
 
 
-def print_confirmed(items: Iterable[Reservation]) -> None:
-    print("Confirmed reservations:")
-    for r in items:
-        print(f"- {r.customer_name}, {r.resource}, {r.day:%d.%m.%Y} at {r.start:%H.%M}")
+def confirmation_statuses(reservations: list[Reservation]) -> None:
+    for r in reservations:
+        print(f"{r.name} → {'Confirmed' if r.confirmed else 'NOT Confirmed'}")
 
 
-def print_long(items: Iterable[Reservation]) -> None:
-    print("\nLong reservations (duration >= 3h):")
-    for r in items:
-        print(f"- {r.customer_name} ({r.hours}h), total {r.total():.2f} €")
+def confirmation_summary(reservations: list[Reservation]) -> None:
+    confirmed = len([r for r in reservations if r.confirmed])
+    not_confirmed = len(reservations) - confirmed
+
+    print(f"- Confirmed reservations: {confirmed} pcs")
+    print(f"- Not confirmed reservations: {not_confirmed} pcs")
 
 
-def revenue(items: Iterable[Reservation]) -> float:
-    return sum(r.total() for r in items)
+def total_revenue(reservations: list[Reservation]) -> None:
+    revenue = sum(r.total_price() for r in reservations if r.confirmed)
+    print(
+        f"Total revenue from confirmed reservations: "
+        f"{revenue:.2f} €".replace(".", ",")
+    )
 
 
 def main() -> None:
-    all_reservations = read_reservations("reservations.txt")
+    reservations = fetch_reservations("reservations.txt")
 
-    confirmed = confirmed_only(all_reservations)
-    print_confirmed(confirmed)
+    print("1) Confirmed Reservations")
+    confirmed_reservations(reservations)
 
-    long_res = long_only(all_reservations, min_hours=3)
-    print_long(long_res)
+    print("2) Long Reservations (≥ 3 h)")
+    long_reservations(reservations)
 
-    total_rev = revenue(confirmed)
-    print(f"\nTotal revenue (confirmed): {total_rev:.2f} €")
+    print("3) Reservation Confirmation Status")
+    confirmation_statuses(reservations)
+
+    print("4) Confirmation Summary")
+    confirmation_summary(reservations)
+
+    print("5) Total Revenue from Confirmed Reservations")
+    total_revenue(reservations)
 
 
 if __name__ == "__main__":
